@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Public profile record for authorized clinicians and hospital coordinators",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Authenticated user UID"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Full display name"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["REFERRING_DOCTOR", "HOSPITAL_COORDINATOR"],
+          "description": "Assigned RBAC role"
+        },
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Clinic or hospital affiliation"
+        },
+        "hospitalId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Associated hospital ID for coordinators"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["uid", "name", "role", "organization", "createdAt"]
+    },
+    "Hospital": {
+      "title": "Hospital",
+      "description": "Fictional demonstration hospital record in Davangere, Karnataka",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280
+        },
+        "area": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "contactInformation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "activeStatus": {
+          "type": "boolean"
+        },
+        "referralAcceptance": {
+          "type": "string",
+          "enum": ["ACCEPTING", "LIMITED_REVIEW", "NOT_ACCEPTING"]
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "address", "area", "contactInformation", "activeStatus", "referralAcceptance", "ownerUid", "updatedAt"]
+    },
+    "HospitalService": {
+      "title": "HospitalService",
+      "description": "Service availability and reported capacity for a specific hospital",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hospitalId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "serviceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "serviceStatus": {
+          "type": "string",
+          "enum": ["AVAILABLE", "UNAVAILABLE"]
+        },
+        "capacityStatus": {
+          "type": "string",
+          "enum": ["AVAILABLE", "LIMITED", "UNCONFIRMED", "UNAVAILABLE"]
+        },
+        "referralAcceptance": {
+          "type": "string",
+          "enum": ["ACCEPTING", "PENDING_REVIEW", "PAUSED"]
+        },
+        "operationalNotes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "hospitalId", "serviceId", "serviceStatus", "capacityStatus", "referralAcceptance", "updatedBy", "updatedAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Hospital referral coordination request with synthetic patient reference",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referralReference": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requiredServiceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "receivingHospitalId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "preferredArea": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "urgencyLabel": {
+          "type": "string",
+          "enum": ["ROUTINE", "PRIORITY", "URGENT_TRANSFER"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "ACCEPTED", "DECLINED", "MORE_INFO_NEEDED"]
+        },
+        "syntheticPatientRef": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referringClinic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "coordinationNotes": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "referralReference", "createdBy", "requiredServiceId", "receivingHospitalId", "preferredArea", "urgencyLabel", "status", "syntheticPatientRef", "referringClinic", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable audit log entry recording capacity and referral changes",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "entityType": {
+          "type": "string",
+          "enum": ["HOSPITAL_SERVICE", "REFERRAL", "HOSPITAL"]
+        },
+        "entityId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "oldValue": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "newValue": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "actorId", "entityType", "entityId", "action", "oldValue", "newValue", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Authorized clinician and hospital coordinator public profile documents"
+    },
+    "/hospitals/{hospitalId}": {
+      "schema": { "$ref": "#/entities/Hospital" },
+      "description": "Demonstration hospital profiles in Davangere region"
+    },
+    "/hospital_services/{hospitalServiceId}": {
+      "schema": { "$ref": "#/entities/HospitalService" },
+      "description": "Service availability and reported capacity records per hospital"
+    },
+    "/referrals/{referralId}": {
+      "schema": { "$ref": "#/entities/Referral" },
+      "description": "Hospital referral coordination requests"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable audit trail of capacity updates and referral state transitions"
+    }
+  }
+}

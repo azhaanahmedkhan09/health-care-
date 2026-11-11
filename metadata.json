@@ -1,0 +1,6 @@
+{
+  "name": "ReliefLedger Health",
+  "description": "Intelligent hospital referral coordination platform for referring clinics, doctors, and receiving hospital coordinators to evaluate service availability, reported capacity, referral acceptance, and real-time referral tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

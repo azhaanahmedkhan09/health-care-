@@ -1,0 +1,217 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'azhaanahmed90@gmail.com'
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidUserPublic(data) {
+      return data.keys().hasAll(['uid', 'name', 'role', 'organization', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'name', 'role', 'organization', 'hospitalId', 'createdAt']) &&
+        data.uid == request.auth.uid &&
+        isValidId(data.uid) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.role is string && (data.role == 'REFERRING_DOCTOR' || data.role == 'HOSPITAL_COORDINATOR') &&
+        data.organization is string && data.organization.size() >= 1 && data.organization.size() <= 160 &&
+        (!('hospitalId' in data) || isValidId(data.hospitalId)) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidHospital(data) {
+      return data.keys().hasAll(['id', 'name', 'address', 'area', 'contactInformation', 'activeStatus', 'referralAcceptance', 'ownerUid', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'name', 'address', 'area', 'contactInformation', 'activeStatus', 'referralAcceptance', 'ownerUid', 'updatedAt']) &&
+        isValidId(data.id) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 160 &&
+        data.address is string && data.address.size() >= 1 && data.address.size() <= 280 &&
+        data.area is string && data.area.size() >= 1 && data.area.size() <= 100 &&
+        data.contactInformation is string && data.contactInformation.size() >= 1 && data.contactInformation.size() <= 200 &&
+        data.activeStatus is bool &&
+        data.referralAcceptance is string && (data.referralAcceptance == 'ACCEPTING' || data.referralAcceptance == 'LIMITED_REVIEW' || data.referralAcceptance == 'NOT_ACCEPTING') &&
+        data.ownerUid == request.auth.uid &&
+        isValidId(data.ownerUid) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidHospitalService(data) {
+      return data.keys().hasAll(['id', 'hospitalId', 'serviceId', 'serviceStatus', 'capacityStatus', 'referralAcceptance', 'updatedBy', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'hospitalId', 'serviceId', 'serviceStatus', 'capacityStatus', 'referralAcceptance', 'operationalNotes', 'updatedBy', 'updatedAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.hospitalId) &&
+        isValidId(data.serviceId) &&
+        data.serviceStatus is string && (data.serviceStatus == 'AVAILABLE' || data.serviceStatus == 'UNAVAILABLE') &&
+        data.capacityStatus is string && (data.capacityStatus == 'AVAILABLE' || data.capacityStatus == 'LIMITED' || data.capacityStatus == 'UNCONFIRMED' || data.capacityStatus == 'UNAVAILABLE') &&
+        data.referralAcceptance is string && (data.referralAcceptance == 'ACCEPTING' || data.referralAcceptance == 'PENDING_REVIEW' || data.referralAcceptance == 'PAUSED') &&
+        (!('operationalNotes' in data) || (data.operationalNotes is string && data.operationalNotes.size() <= 500)) &&
+        data.updatedBy == request.auth.uid &&
+        isValidId(data.updatedBy) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidReferral(data) {
+      return data.keys().hasAll(['id', 'referralReference', 'createdBy', 'requiredServiceId', 'receivingHospitalId', 'preferredArea', 'urgencyLabel', 'status', 'syntheticPatientRef', 'referringClinic', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'referralReference', 'createdBy', 'requiredServiceId', 'receivingHospitalId', 'preferredArea', 'urgencyLabel', 'status', 'syntheticPatientRef', 'referringClinic', 'coordinationNotes', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) &&
+        data.referralReference is string && data.referralReference.size() >= 1 && data.referralReference.size() <= 64 && data.referralReference.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.createdBy == request.auth.uid &&
+        isValidId(data.createdBy) &&
+        isValidId(data.requiredServiceId) &&
+        isValidId(data.receivingHospitalId) &&
+        data.preferredArea is string && data.preferredArea.size() >= 1 && data.preferredArea.size() <= 100 &&
+        data.urgencyLabel is string && (data.urgencyLabel == 'ROUTINE' || data.urgencyLabel == 'PRIORITY' || data.urgencyLabel == 'URGENT_TRANSFER') &&
+        data.status is string && (data.status == 'PENDING' || data.status == 'ACCEPTED' || data.status == 'DECLINED' || data.status == 'MORE_INFO_NEEDED') &&
+        data.syntheticPatientRef is string && data.syntheticPatientRef.size() >= 1 && data.syntheticPatientRef.size() <= 64 && data.syntheticPatientRef.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.referringClinic is string && data.referringClinic.size() >= 1 && data.referringClinic.size() <= 160 &&
+        (!('coordinationNotes' in data) || (data.coordinationNotes is string && data.coordinationNotes.size() <= 600)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'actorId', 'entityType', 'entityId', 'action', 'oldValue', 'newValue', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'actorId', 'entityType', 'entityId', 'action', 'oldValue', 'newValue', 'createdAt']) &&
+        isValidId(data.id) &&
+        data.actorId == request.auth.uid &&
+        isValidId(data.actorId) &&
+        data.entityType is string && (data.entityType == 'HOSPITAL_SERVICE' || data.entityType == 'REFERRAL' || data.entityType == 'HOSPITAL') &&
+        isValidId(data.entityId) &&
+        data.action is string && data.action.size() >= 1 && data.action.size() <= 120 &&
+        data.oldValue is string && data.oldValue.size() <= 500 &&
+        data.newValue is string && data.newValue.size() <= 500 &&
+        data.createdAt is timestamp;
+    }
+
+    // 4. Collection Match Blocks
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (existing().uid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(userId) && userId == request.auth.uid &&
+        isValidUserPublic(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().role == 'REFERRING_DOCTOR';
+      allow update: if isSignedIn() && isValidId(userId) && isValidUserPublic(incoming()) && (
+        isAdmin() || (
+          existing().uid == request.auth.uid &&
+          incoming().uid == existing().uid &&
+          incoming().role == existing().role &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'organization'])
+        )
+      );
+      allow delete: if false;
+    }
+
+    match /hospitals/{hospitalId} {
+      allow get: if isSignedIn() && isValidId(hospitalId) && (existing().activeStatus == true || existing().ownerUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerUid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(hospitalId) && hospitalId == incoming().id &&
+        isValidHospital(incoming()) &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isSignedIn() && isValidId(hospitalId) && isValidHospital(incoming()) && (
+        isAdmin() || (
+          existing().ownerUid == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().ownerUid == existing().ownerUid &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['contactInformation', 'referralAcceptance', 'activeStatus', 'updatedAt'])
+        )
+      );
+      allow delete: if false;
+    }
+
+    match /hospital_services/{hospitalServiceId} {
+      allow get: if isSignedIn() && isValidId(hospitalServiceId) && (existing().updatedBy == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().updatedBy == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(hospitalServiceId) && hospitalServiceId == incoming().id &&
+        isValidHospitalService(incoming()) &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/hospitals/$(incoming().hospitalId)) &&
+        get(/databases/$(database)/documents/hospitals/$(incoming().hospitalId)).data.ownerUid == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(hospitalServiceId) && isValidHospitalService(incoming()) && (
+        isAdmin() || (
+          existing().updatedBy == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().hospitalId == existing().hospitalId &&
+          incoming().serviceId == existing().serviceId &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/hospitals/$(existing().hospitalId)) &&
+          get(/databases/$(database)/documents/hospitals/$(existing().hospitalId)).data.ownerUid == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['serviceStatus', 'capacityStatus', 'referralAcceptance', 'operationalNotes', 'updatedAt'])
+        )
+      );
+      allow delete: if false;
+    }
+
+    match /referrals/{referralId} {
+      allow get: if isSignedIn() && isValidId(referralId) && (
+        existing().createdBy == request.auth.uid ||
+        get(/databases/$(database)/documents/hospitals/$(existing().receivingHospitalId)).data.ownerUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && existing().createdBy == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(referralId) && referralId == incoming().id &&
+        isValidReferral(incoming()) &&
+        incoming().status == 'PENDING' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/hospitals/$(incoming().receivingHospitalId));
+      allow update: if isSignedIn() && isValidId(referralId) && isValidReferral(incoming()) && (
+        isAdmin() || (
+          existing().status != 'ACCEPTED' &&
+          existing().status != 'DECLINED' &&
+          existing().createdBy == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().referralReference == existing().referralReference &&
+          incoming().createdBy == existing().createdBy &&
+          incoming().requiredServiceId == existing().requiredServiceId &&
+          incoming().syntheticPatientRef == existing().syntheticPatientRef &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'coordinationNotes', 'receivingHospitalId', 'updatedAt'])
+        )
+      );
+      allow delete: if false;
+    }
+
+    match /audit_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (existing().actorId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().actorId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) && logId == incoming().id &&
+        isValidAuditLog(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}
